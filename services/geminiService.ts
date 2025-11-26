@@ -1,9 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { QuizQuestion } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
-
 // Schema for Quiz Generation
 const quizSchema: Schema = {
   type: Type.ARRAY,
@@ -35,6 +32,7 @@ const quizSchema: Schema = {
 
 export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestion[]> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const model = "gemini-2.5-flash";
     const topicInstruction = topic === 'advanced' 
       ? 'Focus on: Distinction between Gerunds and Participles, verbs with meaning changes (remember/forget/try/stop), and prepositions + gerunds.' 
@@ -97,6 +95,7 @@ export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestio
 
 export const getTutorResponse = async (history: { role: string, parts: { text: string }[] }[], message: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const model = "gemini-2.5-flash";
     const chat = ai.chats.create({
       model,

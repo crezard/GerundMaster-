@@ -1,12 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppView } from './types';
 import LearnSection from './components/LearnSection';
 import QuizSection from './components/QuizSection';
 import ChatSection from './components/ChatSection';
-import { BookOpen, Edit3, MessageCircle, GraduationCap, ChevronRight, Sparkles } from 'lucide-react';
+import { BookOpen, Edit3, MessageCircle, GraduationCap, ChevronRight, Key } from 'lucide-react';
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.HOME);
+  const [hasApiKey, setHasApiKey] = useState(false);
+  const [checkingKey, setCheckingKey] = useState(true);
+
+  useEffect(() => {
+    const checkKey = async () => {
+      const win = window as any;
+      if (win.aistudio) {
+        try {
+          const has = await win.aistudio.hasSelectedApiKey();
+          setHasApiKey(has);
+        } catch (e) {
+          console.error("Failed to check API key:", e);
+          setHasApiKey(false);
+        }
+      } else {
+        // Fallback for standard environments
+        setHasApiKey(true);
+      }
+      setCheckingKey(false);
+    };
+    checkKey();
+  }, []);
+
+  const handleSelectKey = async () => {
+    const win = window as any;
+    if (win.aistudio) {
+      try {
+        await win.aistudio.openSelectKey();
+        const has = await win.aistudio.hasSelectedApiKey();
+        setHasApiKey(has);
+      } catch (e) {
+        console.error("Failed to select API key:", e);
+      }
+    }
+  };
 
   const renderContent = () => {
     switch (currentView) {
@@ -101,6 +136,44 @@ const App: React.FC = () => {
         );
     }
   };
+
+  if (checkingKey) {
+    return <div className="min-h-screen bg-slate-50" />;
+  }
+
+  if (!hasApiKey && (window as any).aistudio) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 animate-fade-in">
+        <div className="bg-white p-10 rounded-[2rem] shadow-2xl max-w-md w-full text-center space-y-8 relative overflow-hidden border border-slate-100">
+           <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
+           <div className="w-24 h-24 bg-violet-50 rounded-full flex items-center justify-center mx-auto mb-6">
+             <Key className="w-12 h-12 text-violet-600" />
+           </div>
+           
+           <div className="space-y-2">
+             <h1 className="text-3xl font-black text-slate-800">API 키 설정</h1>
+             <p className="text-slate-600 text-lg leading-relaxed">
+               GerundMaster를 시작하기 위해<br/>
+               Google AI API 키를 선택해주세요.
+             </p>
+           </div>
+           
+           <button 
+             onClick={handleSelectKey}
+             className="w-full py-4 bg-violet-600 text-white rounded-xl font-bold text-lg hover:bg-violet-700 transition-all shadow-xl shadow-violet-200 transform hover:-translate-y-1"
+           >
+             API 키 선택하기
+           </button>
+           
+           <div className="text-sm text-slate-400 font-medium">
+             <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener noreferrer" className="hover:text-violet-500 underline decoration-slate-300 underline-offset-4">
+               API 키 관련 도움말 보기
+             </a>
+           </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-violet-200 selection:text-violet-900">
