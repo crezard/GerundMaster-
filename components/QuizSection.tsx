@@ -54,7 +54,7 @@ const QuizSection: React.FC = () => {
       }
     } else {
         // Fallback for Vercel/Local environments
-        alert("배포 환경(Vercel 등)에서는 설정(Settings) > Environment Variables에 'VITE_VAIT_API_KEY'를 추가하고 재배포해주세요.");
+        alert("환경 변수 설정을 확인해주세요.");
     }
   };
 
@@ -127,10 +127,12 @@ const QuizSection: React.FC = () => {
                     <Key className="w-4 h-4" />
                     API 키 설정 확인
                 </button>
-                <div className="text-xs text-red-500 mt-2 bg-white/50 p-2 rounded w-full text-center">
-                   <strong>Vercel 배포 시:</strong><br/>
-                   Settings {'>'} Environment Variables에<br/>
-                   <code>VITE_VAIT_API_KEY</code>를 추가해주세요.
+                <div className="text-xs text-red-500 mt-2 bg-white/50 p-3 rounded w-full text-center leading-relaxed">
+                   <strong>Vercel 배포 시 확인사항:</strong><br/>
+                   1. Settings {'>'} Environment Variables 이동<br/>
+                   2. Key: <code>VITE_VAIT_API_KEY</code><br/>
+                   3. Value: <code>AIzaSy...</code> (설정한 값)<br/>
+                   4. <strong>반드시 재배포(Redeploy)</strong>를 해야 적용됩니다!
                 </div>
               </div>
             )}
