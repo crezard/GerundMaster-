@@ -30,11 +30,39 @@ const quizSchema: Schema = {
   }
 };
 
+// Helper to check environment status for debugging UI
+export const checkEnvStatus = () => {
+  const status = {
+    hasImportMeta: false,
+    hasViteVaitKey: false,
+    hasViteKey: false,
+    hasProcessKey: false,
+  };
+
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      status.hasImportMeta = true;
+      // @ts-ignore
+      if (import.meta.env.VITE_VAIT_API_KEY) status.hasViteVaitKey = true;
+      // @ts-ignore
+      if (import.meta.env.VITE_API_KEY) status.hasViteKey = true;
+    }
+  } catch (e) {}
+
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      status.hasProcessKey = true;
+    }
+  } catch (e) {}
+
+  return status;
+};
+
 const getClient = () => {
   let apiKey = '';
   
-  // 1. Try Vercel / Vite Environment Variables first (Target Deployment Environment)
-  // In Vite, import.meta.env is used to access env vars prefixed with VITE_
+  // 1. Try Vercel / Vite Environment Variables (import.meta.env)
   try {
     // @ts-ignore
     if (typeof import.meta !== 'undefined' && import.meta.env) {
@@ -43,33 +71,25 @@ const getClient = () => {
       // @ts-ignore
       const viteKey = import.meta.env.VITE_API_KEY;
       
-      if (vaitKey) {
-        apiKey = vaitKey;
-      } else if (viteKey) {
-        apiKey = viteKey;
-      }
+      if (vaitKey) apiKey = vaitKey;
+      else if (viteKey) apiKey = viteKey;
     }
   } catch (e) {
-    console.warn("Error accessing import.meta.env:", e);
+    console.warn("Issue accessing import.meta.env", e);
   }
 
   // 2. Fallback to process.env (Sandbox / Node / AI Studio)
-  // This is checked second so it doesn't crash browser builds that don't polyfill process
   if (!apiKey) {
     try {
-      // Use a safe check for process
-      if (typeof process !== 'undefined' && process.env) {
-        if (process.env.API_KEY) {
-          apiKey = process.env.API_KEY;
-        }
+      if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+        apiKey = process.env.API_KEY;
       }
-    } catch (e) {
-      console.warn("Error accessing process.env:", e);
-    }
+    } catch (e) {}
   }
 
   if (!apiKey) {
-    console.error("No API Key found in import.meta.env (VITE_VAIT_API_KEY) or process.env.API_KEY");
+    // Log debug info for developers
+    console.error("API Key missing. Env Status:", checkEnvStatus());
     throw new Error("API_KEY_MISSING");
   }
 
@@ -78,7 +98,6 @@ const getClient = () => {
 
 export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestion[]> => {
   try {
-    // Initialize client inside the function to ensure environment variables are loaded
     const ai = getClient();
     const model = "gemini-2.5-flash";
     const topicInstruction = topic === 'advanced' 

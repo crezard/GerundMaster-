@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { generateQuiz } from '../services/geminiService';
+import React, { useState, useEffect } from 'react';
+import { generateQuiz, checkEnvStatus } from '../services/geminiService';
 import { QuizQuestion } from '../types';
-import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, Key, RefreshCw, Terminal, Globe } from 'lucide-react';
+import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, Key, RefreshCw, Terminal, Globe, CheckCircle2, XCircle } from 'lucide-react';
 
 const QuizSection: React.FC = () => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -13,6 +13,12 @@ const QuizSection: React.FC = () => {
   const [quizMode, setQuizMode] = useState<'intro' | 'active' | 'result'>('intro');
   const [difficulty, setDifficulty] = useState<'basic' | 'advanced'>('basic');
   const [streak, setStreak] = useState(0);
+  const [envStatus, setEnvStatus] = useState<any>(null);
+
+  useEffect(() => {
+    // Check env status on mount for debugging
+    setEnvStatus(checkEnvStatus());
+  }, []);
 
   const startQuiz = async (level: 'basic' | 'advanced') => {
     setDifficulty(level);
@@ -33,6 +39,8 @@ const QuizSection: React.FC = () => {
         setError("문제를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.");
       }
     } catch (e: any) {
+      // Re-check env status on error
+      setEnvStatus(checkEnvStatus());
       if (e.message === "API_KEY_MISSING") {
         setError("API_KEY_MISSING");
       } else {
@@ -123,28 +131,44 @@ const QuizSection: React.FC = () => {
                    <strong className="text-red-700 block mb-2 text-sm border-b border-red-200 pb-1 flex items-center gap-1">
                      <Globe className="w-3 h-3" /> 배포 환경(Vercel) 해결 가이드
                    </strong>
-                   <ol className="list-decimal pl-4 space-y-2">
+                   <ol className="list-decimal pl-4 space-y-2 mb-4">
                      <li>
                         <strong>Vercel 대시보드</strong> &gt; Settings &gt; Environment Variables 이동
                      </li>
                      <li>
-                        Key 이름이 정확히 <code className="bg-red-100 px-1 rounded font-bold">VITE_VAIT_API_KEY</code> 인지 확인해주세요.
+                        Key: <code className="bg-red-100 px-1 rounded font-bold">VITE_VAIT_API_KEY</code><br/>
+                        Value: (당신의 API Key)
                      </li>
                      <li>
-                        <span className="text-red-700 font-bold underline">가장 중요:</span> 변수 추가/수정 후에는 반드시 <br/>
-                        <strong>Deployments 탭 &gt; Redeploy</strong> 버튼을 눌러야 적용됩니다!
+                        <span className="text-red-700 font-bold bg-red-50 px-1">반드시 Redeploy 하세요!</span><br/>
+                        (Deployments 탭 &gt; 우측 점 3개 &gt; Redeploy)
                      </li>
                    </ol>
                    
-                   <div className="mt-4 pt-2 border-t border-red-200 text-[10px] text-slate-500 font-mono">
-                     <div className="flex items-center gap-1 font-bold text-slate-600 mb-1">
-                       <Terminal className="w-3 h-3" /> 시스템 진단
+                   <div className="mt-4 pt-2 border-t border-red-200 text-[11px] font-mono bg-slate-800 text-white p-3 rounded-lg">
+                     <div className="flex items-center gap-2 font-bold mb-2 text-yellow-400">
+                       <Terminal className="w-3 h-3" /> 시스템 진단 (System Check)
                      </div>
-                     <div>Vite Environment: {
-                        // @ts-ignore
-                        (typeof import.meta !== 'undefined' && import.meta.env) ? "Detected (OK)" : "Not Detected"
-                     }</div>
-                     <div>Target Key: VITE_VAIT_API_KEY</div>
+                     <div className="space-y-1">
+                       <div className="flex justify-between">
+                         <span>import.meta.env:</span>
+                         <span className={envStatus?.hasImportMeta ? "text-green-400" : "text-red-400"}>
+                           {envStatus?.hasImportMeta ? "FOUND" : "MISSING"}
+                         </span>
+                       </div>
+                       <div className="flex justify-between">
+                         <span>VITE_VAIT_API_KEY:</span>
+                         <span className={envStatus?.hasViteVaitKey ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                           {envStatus?.hasViteVaitKey ? "DETECTED" : "NOT FOUND"}
+                         </span>
+                       </div>
+                       <div className="flex justify-between">
+                         <span>process.env.API_KEY:</span>
+                         <span className={envStatus?.hasProcessKey ? "text-green-400" : "text-gray-500"}>
+                           {envStatus?.hasProcessKey ? "DETECTED" : "NOT FOUND"}
+                         </span>
+                       </div>
+                     </div>
                    </div>
                 </div>
                 {(window as any).aistudio && (
