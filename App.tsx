@@ -22,7 +22,8 @@ const App: React.FC = () => {
           setHasApiKey(false);
         }
       } else {
-        // Fallback for standard environments
+        // Fallback for standard environments (Vite/Vercel)
+        // Assume true so we don't block the UI, errors will be caught in service calls
         setHasApiKey(true);
       }
       setCheckingKey(false);

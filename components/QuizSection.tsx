@@ -53,8 +53,8 @@ const QuizSection: React.FC = () => {
         console.error(e);
       }
     } else {
-        // Fallback for local environments
-        alert("로컬 환경에서는 .env 파일에 VITE_VAIT_API_KEY 또는 API_KEY를 설정하고 서버를 재시작해주세요.");
+        // Fallback for Vercel/Local environments
+        alert("배포 환경(Vercel 등)에서는 설정(Settings) > Environment Variables에 'VITE_VAIT_API_KEY'를 추가하고 재배포해주세요.");
     }
   };
 
@@ -119,7 +119,7 @@ const QuizSection: React.FC = () => {
               </span>
             </div>
             {error === "API_KEY_MISSING" && (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-2 w-full max-w-md">
                 <button 
                     onClick={handleOpenKeySettings}
                     className="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-full font-bold transition-colors flex items-center gap-2"
@@ -127,9 +127,11 @@ const QuizSection: React.FC = () => {
                     <Key className="w-4 h-4" />
                     API 키 설정 확인
                 </button>
-                <p className="text-xs text-red-400 mt-2">
-                  * 환경 변수(VITE_VAIT_API_KEY) 설정을 확인해주세요.
-                </p>
+                <div className="text-xs text-red-500 mt-2 bg-white/50 p-2 rounded w-full text-center">
+                   <strong>Vercel 배포 시:</strong><br/>
+                   Settings {'>'} Environment Variables에<br/>
+                   <code>VITE_VAIT_API_KEY</code>를 추가해주세요.
+                </div>
               </div>
             )}
           </div>

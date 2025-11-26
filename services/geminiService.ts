@@ -31,11 +31,10 @@ const quizSchema: Schema = {
 };
 
 const getClient = () => {
-  // Check for the user's specific key first, then the standard key
-  const apiKey = process.env.VITE_VAIT_API_KEY || process.env.API_KEY;
+  // The API key must be obtained exclusively from the environment variable process.env.API_KEY.
+  const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    console.error("Gemini API Key is missing. Checked 'VITE_VAIT_API_KEY' and 'API_KEY'.");
     throw new Error("API_KEY_MISSING");
   }
   return new GoogleGenAI({ apiKey });
@@ -134,8 +133,11 @@ export const getTutorResponse = async (history: { role: string, parts: { text: s
 
     const result = await chat.sendMessage({ message });
     return result.text || "미안해, 다시 한번 말해줄래? 😅";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat error:", error);
+    if (error.message === "API_KEY_MISSING") {
+        return "API 키 설정이 필요해! (설정 > 환경변수 확인)";
+    }
     return "어라? 연결에 문제가 생긴 것 같아. 잠시 후에 다시 시도해줘! 🚧";
   }
 };
