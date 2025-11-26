@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateQuiz } from '../services/geminiService';
 import { QuizQuestion } from '../types';
-import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, Key, RefreshCw, Terminal } from 'lucide-react';
+import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, Key, RefreshCw, Terminal, Globe } from 'lucide-react';
 
 const QuizSection: React.FC = () => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -53,7 +53,7 @@ const QuizSection: React.FC = () => {
         console.error(e);
       }
     } else {
-        alert("Vercel 설정 페이지에서 환경 변수(VITE_VAIT_API_KEY)를 확인해주세요.");
+        alert("배포된 환경에서는 설정 페이지에서 'VITE_VAIT_API_KEY' 환경 변수를 확인해주세요.");
     }
   };
 
@@ -120,23 +120,31 @@ const QuizSection: React.FC = () => {
             {error === "API_KEY_MISSING" && (
               <div className="flex flex-col items-center gap-2 w-full max-w-md">
                 <div className="text-xs text-red-500 mt-2 bg-white/50 p-4 rounded-xl w-full text-left leading-relaxed border border-red-100 shadow-sm">
-                   <strong className="text-red-700 block mb-2 text-sm border-b border-red-200 pb-1">⚡ 문제 해결 가이드</strong>
-                   <ol className="list-decimal pl-4 space-y-1">
-                     <li>Vercel 프로젝트 <strong>Settings &gt; Environment Variables</strong> 이동</li>
-                     <li>Key: <code className="bg-red-100 px-1 rounded">VITE_VAIT_API_KEY</code> 입력</li>
-                     <li>Value: 발급받은 API 키 입력 (AIzaSy...)</li>
-                     <li><strong>중요:</strong> 변수 추가 후 <u className="font-bold text-red-700">Deployments 탭에서 Redeploy</u>를 꼭 해야 합니다!</li>
+                   <strong className="text-red-700 block mb-2 text-sm border-b border-red-200 pb-1 flex items-center gap-1">
+                     <Globe className="w-3 h-3" /> 배포 환경(Vercel) 해결 가이드
+                   </strong>
+                   <ol className="list-decimal pl-4 space-y-2">
+                     <li>
+                        <strong>Vercel 대시보드</strong> &gt; Settings &gt; Environment Variables 이동
+                     </li>
+                     <li>
+                        Key 이름이 정확히 <code className="bg-red-100 px-1 rounded font-bold">VITE_VAIT_API_KEY</code> 인지 확인해주세요.
+                     </li>
+                     <li>
+                        <span className="text-red-700 font-bold underline">가장 중요:</span> 변수 추가/수정 후에는 반드시 <br/>
+                        <strong>Deployments 탭 &gt; Redeploy</strong> 버튼을 눌러야 적용됩니다!
+                     </li>
                    </ol>
                    
                    <div className="mt-4 pt-2 border-t border-red-200 text-[10px] text-slate-500 font-mono">
                      <div className="flex items-center gap-1 font-bold text-slate-600 mb-1">
-                       <Terminal className="w-3 h-3" /> 환경 진단 정보
+                       <Terminal className="w-3 h-3" /> 시스템 진단
                      </div>
-                     <div>Vite Mode: {
+                     <div>Vite Environment: {
                         // @ts-ignore
                         (typeof import.meta !== 'undefined' && import.meta.env) ? "Detected (OK)" : "Not Detected"
                      }</div>
-                     <div>Key Name: VITE_VAIT_API_KEY</div>
+                     <div>Target Key: VITE_VAIT_API_KEY</div>
                    </div>
                 </div>
                 {(window as any).aistudio && (

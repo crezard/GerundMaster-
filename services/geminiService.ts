@@ -32,47 +32,47 @@ const quizSchema: Schema = {
 
 const getClient = () => {
   let apiKey = '';
-  const debugLogs: string[] = [];
-
-  // Strategy 1: Standard process.env (Node / Webpack / AI Studio)
-  // We check typeof process first to avoid ReferenceError in strict browser environments
+  
+  // 1. Try Vercel / Vite Environment Variables first (Target Deployment Environment)
+  // In Vite, import.meta.env is used to access env vars prefixed with VITE_
   try {
-    if (typeof process !== 'undefined' && process.env) {
-      apiKey = process.env.API_KEY || '';
-      if (!apiKey) debugLogs.push("process.env.API_KEY is empty");
-    } else {
-      debugLogs.push("process is undefined");
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+      // @ts-ignore
+      const vaitKey = import.meta.env.VITE_VAIT_API_KEY;
+      // @ts-ignore
+      const viteKey = import.meta.env.VITE_API_KEY;
+      
+      if (vaitKey) {
+        apiKey = vaitKey;
+      } else if (viteKey) {
+        apiKey = viteKey;
+      }
     }
   } catch (e) {
-    debugLogs.push("Error accessing process.env");
+    console.warn("Error accessing import.meta.env:", e);
   }
 
-  // Strategy 2: Vite/Vercel (Client-side)
-  // Vercel only exposes variables prefixed with VITE_ to the client bundle via import.meta.env
+  // 2. Fallback to process.env (Sandbox / Node / AI Studio)
+  // This is checked second so it doesn't crash browser builds that don't polyfill process
   if (!apiKey) {
     try {
-      // @ts-ignore
-      if (typeof import.meta !== 'undefined' && import.meta.env) {
-        // Prioritize user's specific key: VITE_VAIT_API_KEY
-        // @ts-ignore
-        apiKey = import.meta.env.VITE_VAIT_API_KEY || import.meta.env.VITE_API_KEY;
-        
-        if (!apiKey) debugLogs.push("import.meta.env VITE keys are empty");
-      } else {
-        debugLogs.push("import.meta is undefined");
+      // Use a safe check for process
+      if (typeof process !== 'undefined' && process.env) {
+        if (process.env.API_KEY) {
+          apiKey = process.env.API_KEY;
+        }
       }
     } catch (e) {
-      debugLogs.push("Error accessing import.meta.env");
+      console.warn("Error accessing process.env:", e);
     }
   }
-  
+
   if (!apiKey) {
-    console.error("API Key missing. Debug info:", debugLogs);
-    // Explicitly throw a custom error to be caught by the UI
+    console.error("No API Key found in import.meta.env (VITE_VAIT_API_KEY) or process.env.API_KEY");
     throw new Error("API_KEY_MISSING");
   }
 
-  // Create client with the found key
   return new GoogleGenAI({ apiKey });
 };
 
