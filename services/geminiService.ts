@@ -37,6 +37,7 @@ export const checkEnvStatus = () => {
     hasViteVaitKey: false,
     hasViteKey: false,
     hasProcessKey: false,
+    keysFound: [] as string[]
   };
 
   try {
@@ -44,15 +45,28 @@ export const checkEnvStatus = () => {
     if (typeof import.meta !== 'undefined' && import.meta.env) {
       status.hasImportMeta = true;
       // @ts-ignore
-      if (import.meta.env.VITE_VAIT_API_KEY) status.hasViteVaitKey = true;
+      if (import.meta.env.VITE_VAIT_API_KEY) {
+        status.hasViteVaitKey = true;
+        status.keysFound.push("VITE_VAIT_API_KEY");
+      }
       // @ts-ignore
-      if (import.meta.env.VITE_API_KEY) status.hasViteKey = true;
+      if (import.meta.env.VITE_API_KEY) {
+        status.hasViteKey = true;
+        status.keysFound.push("VITE_API_KEY");
+      }
     }
   } catch (e) {}
 
   try {
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      status.hasProcessKey = true;
+    if (typeof process !== 'undefined' && process.env) {
+      if (process.env.API_KEY) {
+        status.hasProcessKey = true;
+        status.keysFound.push("process.env.API_KEY");
+      }
+      // Check for VITE_VAIT_API_KEY in process.env (sometimes injected by bundlers)
+      if (process.env.VITE_VAIT_API_KEY) {
+        status.keysFound.push("process.env.VITE_VAIT_API_KEY");
+      }
     }
   } catch (e) {}
 
@@ -62,38 +76,74 @@ export const checkEnvStatus = () => {
 const getClient = () => {
   let apiKey = '';
   
-  // 1. Try Vercel / Vite Environment Variables (import.meta.env)
+  console.log("--- API KEY DETECTION START ---");
+
+  // 1. Check import.meta.env.VITE_VAIT_API_KEY (Highest Priority)
   try {
     // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_VAIT_API_KEY) {
+      console.log("SUCCESS: Found VITE_VAIT_API_KEY in import.meta.env");
       // @ts-ignore
-      const vaitKey = import.meta.env.VITE_VAIT_API_KEY;
-      // @ts-ignore
-      const viteKey = import.meta.env.VITE_API_KEY;
-      
-      if (vaitKey) apiKey = vaitKey;
-      else if (viteKey) apiKey = viteKey;
+      apiKey = import.meta.env.VITE_VAIT_API_KEY;
     }
   } catch (e) {
-    console.warn("Issue accessing import.meta.env", e);
+    console.log("Check 1 failed:", e);
   }
 
-  // 2. Fallback to process.env (Sandbox / Node / AI Studio)
+  // 2. Check import.meta.env.VITE_API_KEY
+  if (!apiKey) {
+    try {
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
+        console.log("SUCCESS: Found VITE_API_KEY in import.meta.env");
+        // @ts-ignore
+        apiKey = import.meta.env.VITE_API_KEY;
+      }
+    } catch (e) {
+      console.log("Check 2 failed:", e);
+    }
+  }
+
+  // 3. Check process.env.API_KEY (Standard for Node/Sandbox)
   if (!apiKey) {
     try {
       if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+        console.log("SUCCESS: Found API_KEY in process.env");
         apiKey = process.env.API_KEY;
+      }
+    } catch (e) {
+       console.log("Check 3 failed:", e);
+    }
+  }
+
+  // 4. Check process.env.VITE_VAIT_API_KEY (Fallback)
+  if (!apiKey) {
+    try {
+      if (typeof process !== 'undefined' && process.env && process.env.VITE_VAIT_API_KEY) {
+        console.log("SUCCESS: Found VITE_VAIT_API_KEY in process.env");
+        apiKey = process.env.VITE_VAIT_API_KEY;
       }
     } catch (e) {}
   }
 
   if (!apiKey) {
-    // Log debug info for developers
-    console.error("API Key missing. Env Status:", checkEnvStatus());
+    console.error("CRITICAL ERROR: No API Key found. Checked: import.meta.env.VITE_VAIT_API_KEY, VITE_API_KEY, process.env.API_KEY");
+    
+    // Attempt to log available keys for debugging (safely)
+    try {
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta.env) {
+         // @ts-ignore
+         console.log("Available VITE keys:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
+      }
+    } catch(e) {}
+    
     throw new Error("API_KEY_MISSING");
+  } else {
+    console.log("API Key loaded successfully (First 4 chars):", apiKey.substring(0, 4) + "****");
   }
 
-  return new GoogleGenAI({ apiKey });
+  return new GoogleGenAI({ apiKey: apiKey.trim() });
 };
 
 export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestion[]> => {

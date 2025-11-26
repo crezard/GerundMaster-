@@ -122,52 +122,49 @@ const QuizSection: React.FC = () => {
             <div className="flex items-center gap-2">
               <AlertCircle className="w-6 h-6" />
               <span className="font-bold text-lg">
-                {error === "API_KEY_MISSING" ? "API 키를 찾을 수 없습니다." : error}
+                {error === "API_KEY_MISSING" ? "API 키 설정 문제 (API_KEY_MISSING)" : error}
               </span>
             </div>
             {error === "API_KEY_MISSING" && (
               <div className="flex flex-col items-center gap-2 w-full max-w-md">
                 <div className="text-xs text-red-500 mt-2 bg-white/50 p-4 rounded-xl w-full text-left leading-relaxed border border-red-100 shadow-sm">
                    <strong className="text-red-700 block mb-2 text-sm border-b border-red-200 pb-1 flex items-center gap-1">
-                     <Globe className="w-3 h-3" /> 배포 환경(Vercel) 해결 가이드
+                     <Globe className="w-3 h-3" /> Vercel 환경 문제 해결 (필독)
                    </strong>
                    <ol className="list-decimal pl-4 space-y-2 mb-4">
                      <li>
-                        <strong>Vercel 대시보드</strong> &gt; Settings &gt; Environment Variables 이동
+                        <strong>F12 키를 눌러 [Console] 탭을 확인하세요.</strong><br/>
+                        <span className="text-[10px] text-slate-500">"SUCCESS" 메시지가 없으면 키가 로드되지 않은 것입니다.</span>
                      </li>
                      <li>
-                        Key: <code className="bg-red-100 px-1 rounded font-bold">VITE_VAIT_API_KEY</code><br/>
-                        Value: (당신의 API Key)
+                        Vercel 환경변수 설정에서 Key가 정확한지 확인:<br/>
+                        <code className="bg-red-100 px-1 rounded font-bold text-[10px]">VITE_VAIT_API_KEY</code>
                      </li>
                      <li>
-                        <span className="text-red-700 font-bold bg-red-50 px-1">반드시 Redeploy 하세요!</span><br/>
-                        (Deployments 탭 &gt; 우측 점 3개 &gt; Redeploy)
+                        <span className="text-red-700 font-bold bg-red-50 px-1">설정 후 반드시 Redeploy 하셨나요?</span><br/>
+                        (환경변수는 빌드 시점에 주입되므로 재배포 필수)
                      </li>
                    </ol>
                    
                    <div className="mt-4 pt-2 border-t border-red-200 text-[11px] font-mono bg-slate-800 text-white p-3 rounded-lg">
                      <div className="flex items-center gap-2 font-bold mb-2 text-yellow-400">
-                       <Terminal className="w-3 h-3" /> 시스템 진단 (System Check)
+                       <Terminal className="w-3 h-3" /> System Diagnostics
                      </div>
                      <div className="space-y-1">
-                       <div className="flex justify-between">
+                       <div className="flex justify-between border-b border-slate-700 pb-1 mb-1">
                          <span>import.meta.env:</span>
                          <span className={envStatus?.hasImportMeta ? "text-green-400" : "text-red-400"}>
-                           {envStatus?.hasImportMeta ? "FOUND" : "MISSING"}
+                           {envStatus?.hasImportMeta ? "OK" : "MISSING"}
                          </span>
                        </div>
-                       <div className="flex justify-between">
-                         <span>VITE_VAIT_API_KEY:</span>
-                         <span className={envStatus?.hasViteVaitKey ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
-                           {envStatus?.hasViteVaitKey ? "DETECTED" : "NOT FOUND"}
-                         </span>
-                       </div>
-                       <div className="flex justify-between">
-                         <span>process.env.API_KEY:</span>
-                         <span className={envStatus?.hasProcessKey ? "text-green-400" : "text-gray-500"}>
-                           {envStatus?.hasProcessKey ? "DETECTED" : "NOT FOUND"}
-                         </span>
-                       </div>
+                       <div className="font-bold text-slate-400 mb-1">Keys Detected:</div>
+                       {envStatus?.keysFound && envStatus.keysFound.length > 0 ? (
+                         <div className="text-green-400">
+                           {envStatus.keysFound.map((k: string) => <div key={k}>✓ {k}</div>)}
+                         </div>
+                       ) : (
+                         <div className="text-red-400 font-bold">NONE (No keys found)</div>
+                       )}
                      </div>
                    </div>
                 </div>
@@ -177,7 +174,7 @@ const QuizSection: React.FC = () => {
                       className="mt-2 px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-full font-bold transition-colors flex items-center gap-2"
                   >
                       <Key className="w-4 h-4" />
-                      API 키 선택창 열기
+                      API 키 선택창 열기 (로컬)
                   </button>
                 )}
               </div>
