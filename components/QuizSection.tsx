@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateQuiz } from '../services/geminiService';
 import { QuizQuestion } from '../types';
-import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
+import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, Key } from 'lucide-react';
 
 const QuizSection: React.FC = () => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -32,10 +32,26 @@ const QuizSection: React.FC = () => {
       } else {
         setError("문제를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.");
       }
-    } catch (e) {
-      setError("네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.");
+    } catch (e: any) {
+      if (e.message === "API_KEY_MISSING") {
+        setError("API_KEY_MISSING");
+      } else {
+        setError("네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenKeySettings = async () => {
+    const win = window as any;
+    if (win.aistudio) {
+      try {
+        await win.aistudio.openSelectKey();
+        setError(null); // Clear error to allow retry
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
@@ -92,9 +108,22 @@ const QuizSection: React.FC = () => {
         </p>
 
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center gap-2 text-red-600 animate-pulse">
-            <AlertCircle className="w-5 h-5" />
-            <span className="font-bold">{error}</span>
+          <div className="mb-8 p-6 bg-red-50 border border-red-200 rounded-2xl flex flex-col items-center justify-center gap-4 text-red-600 animate-pulse">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-6 h-6" />
+              <span className="font-bold text-lg">
+                {error === "API_KEY_MISSING" ? "API 키가 설정되지 않았습니다." : error}
+              </span>
+            </div>
+            {error === "API_KEY_MISSING" && (
+              <button 
+                onClick={handleOpenKeySettings}
+                className="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-full font-bold transition-colors flex items-center gap-2"
+              >
+                <Key className="w-4 h-4" />
+                API 키 설정하기
+              </button>
+            )}
           </div>
         )}
 

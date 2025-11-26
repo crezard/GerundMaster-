@@ -30,9 +30,17 @@ const quizSchema: Schema = {
   }
 };
 
+const getClient = () => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY_MISSING");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
 export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestion[]> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = getClient();
     const model = "gemini-2.5-flash";
     const topicInstruction = topic === 'advanced' 
       ? 'Focus on: Distinction between Gerunds and Participles, verbs with meaning changes (remember/forget/try/stop), and prepositions + gerunds.' 
@@ -87,15 +95,18 @@ export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestio
     }
 
     return parsedData.map((q: any, index: number) => ({ ...q, id: Date.now() + index }));
-  } catch (error) {
+  } catch (error: any) {
     console.error("Failed to generate quiz:", error);
-    return [];
+    if (error.message === "API_KEY_MISSING") {
+      throw error;
+    }
+    throw new Error("QUIZ_GENERATION_FAILED");
   }
 };
 
 export const getTutorResponse = async (history: { role: string, parts: { text: string }[] }[], message: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    const ai = getClient();
     const model = "gemini-2.5-flash";
     const chat = ai.chats.create({
       model,
@@ -122,6 +133,6 @@ export const getTutorResponse = async (history: { role: string, parts: { text: s
     return result.text || "미안해, 다시 한번 말해줄래? 😅";
   } catch (error) {
     console.error("Chat error:", error);
-    return "어라? 네트워크 연결이 불안정한 것 같아. 잠시 후에 다시 물어봐줘! 🚧";
+    return "어라? 연결에 문제가 생긴 것 같아. 잠시 후에 다시 시도해줘! 🚧";
   }
 };

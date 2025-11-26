@@ -35,8 +35,8 @@ const App: React.FC = () => {
     if (win.aistudio) {
       try {
         await win.aistudio.openSelectKey();
-        const has = await win.aistudio.hasSelectedApiKey();
-        setHasApiKey(has);
+        // Assuming success to avoid race condition
+        setHasApiKey(true);
       } catch (e) {
         console.error("Failed to select API key:", e);
       }
