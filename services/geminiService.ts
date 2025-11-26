@@ -31,17 +31,54 @@ const quizSchema: Schema = {
 };
 
 const getClient = () => {
-  const apiKey = process.env.API_KEY;
+  let apiKey = '';
+  const debugLogs: string[] = [];
+
+  // Strategy 1: Standard process.env (Node / Webpack / AI Studio)
+  // We check typeof process first to avoid ReferenceError in strict browser environments
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.API_KEY || '';
+      if (!apiKey) debugLogs.push("process.env.API_KEY is empty");
+    } else {
+      debugLogs.push("process is undefined");
+    }
+  } catch (e) {
+    debugLogs.push("Error accessing process.env");
+  }
+
+  // Strategy 2: Vite/Vercel (Client-side)
+  // Vercel only exposes variables prefixed with VITE_ to the client bundle via import.meta.env
+  if (!apiKey) {
+    try {
+      // @ts-ignore
+      if (typeof import.meta !== 'undefined' && import.meta.env) {
+        // Prioritize user's specific key: VITE_VAIT_API_KEY
+        // @ts-ignore
+        apiKey = import.meta.env.VITE_VAIT_API_KEY || import.meta.env.VITE_API_KEY;
+        
+        if (!apiKey) debugLogs.push("import.meta.env VITE keys are empty");
+      } else {
+        debugLogs.push("import.meta is undefined");
+      }
+    } catch (e) {
+      debugLogs.push("Error accessing import.meta.env");
+    }
+  }
   
   if (!apiKey) {
-    console.error("API Key is missing. Checked process.env.API_KEY");
+    console.error("API Key missing. Debug info:", debugLogs);
+    // Explicitly throw a custom error to be caught by the UI
     throw new Error("API_KEY_MISSING");
   }
+
+  // Create client with the found key
   return new GoogleGenAI({ apiKey });
 };
 
 export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestion[]> => {
   try {
+    // Initialize client inside the function to ensure environment variables are loaded
     const ai = getClient();
     const model = "gemini-2.5-flash";
     const topicInstruction = topic === 'advanced' 
@@ -136,7 +173,7 @@ export const getTutorResponse = async (history: { role: string, parts: { text: s
   } catch (error: any) {
     console.error("Chat error:", error);
     if (error.message === "API_KEY_MISSING") {
-        return "API 키 설정이 필요해!";
+        return "API 키 설정 오류가 발생했어. (API Key Missing)";
     }
     return "어라? 연결에 문제가 생긴 것 같아. 잠시 후에 다시 시도해줘! 🚧";
   }

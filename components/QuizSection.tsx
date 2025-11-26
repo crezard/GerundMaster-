@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { generateQuiz } from '../services/geminiService';
 import { QuizQuestion } from '../types';
-import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, Key } from 'lucide-react';
+import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, Key, RefreshCw, Terminal } from 'lucide-react';
 
 const QuizSection: React.FC = () => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
@@ -53,8 +53,7 @@ const QuizSection: React.FC = () => {
         console.error(e);
       }
     } else {
-        // Fallback for Vercel/Local environments
-        alert("환경 변수 설정을 확인해주세요.");
+        alert("Vercel 설정 페이지에서 환경 변수(VITE_VAIT_API_KEY)를 확인해주세요.");
     }
   };
 
@@ -115,26 +114,49 @@ const QuizSection: React.FC = () => {
             <div className="flex items-center gap-2">
               <AlertCircle className="w-6 h-6" />
               <span className="font-bold text-lg">
-                {error === "API_KEY_MISSING" ? "API 키가 확인되지 않습니다." : error}
+                {error === "API_KEY_MISSING" ? "API 키를 찾을 수 없습니다." : error}
               </span>
             </div>
             {error === "API_KEY_MISSING" && (
               <div className="flex flex-col items-center gap-2 w-full max-w-md">
-                <button 
-                    onClick={handleOpenKeySettings}
-                    className="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-full font-bold transition-colors flex items-center gap-2"
-                >
-                    <Key className="w-4 h-4" />
-                    API 키 설정 확인
-                </button>
-                <div className="text-xs text-red-500 mt-2 bg-white/50 p-3 rounded w-full text-center leading-relaxed">
-                   <strong>Vercel 배포 시 확인사항:</strong><br/>
-                   1. Settings {'>'} Environment Variables 이동<br/>
-                   2. Key: <code>VITE_VAIT_API_KEY</code><br/>
-                   3. Value: <code>AIzaSy...</code> (설정한 값)<br/>
-                   4. <strong>반드시 재배포(Redeploy)</strong>를 해야 적용됩니다!
+                <div className="text-xs text-red-500 mt-2 bg-white/50 p-4 rounded-xl w-full text-left leading-relaxed border border-red-100 shadow-sm">
+                   <strong className="text-red-700 block mb-2 text-sm border-b border-red-200 pb-1">⚡ 문제 해결 가이드</strong>
+                   <ol className="list-decimal pl-4 space-y-1">
+                     <li>Vercel 프로젝트 <strong>Settings &gt; Environment Variables</strong> 이동</li>
+                     <li>Key: <code className="bg-red-100 px-1 rounded">VITE_VAIT_API_KEY</code> 입력</li>
+                     <li>Value: 발급받은 API 키 입력 (AIzaSy...)</li>
+                     <li><strong>중요:</strong> 변수 추가 후 <u className="font-bold text-red-700">Deployments 탭에서 Redeploy</u>를 꼭 해야 합니다!</li>
+                   </ol>
+                   
+                   <div className="mt-4 pt-2 border-t border-red-200 text-[10px] text-slate-500 font-mono">
+                     <div className="flex items-center gap-1 font-bold text-slate-600 mb-1">
+                       <Terminal className="w-3 h-3" /> 환경 진단 정보
+                     </div>
+                     <div>Vite Mode: {
+                        // @ts-ignore
+                        (typeof import.meta !== 'undefined' && import.meta.env) ? "Detected (OK)" : "Not Detected"
+                     }</div>
+                     <div>Key Name: VITE_VAIT_API_KEY</div>
+                   </div>
                 </div>
+                {(window as any).aistudio && (
+                  <button 
+                      onClick={handleOpenKeySettings}
+                      className="mt-2 px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-full font-bold transition-colors flex items-center gap-2"
+                  >
+                      <Key className="w-4 h-4" />
+                      API 키 선택창 열기
+                  </button>
+                )}
               </div>
+            )}
+            {error !== "API_KEY_MISSING" && (
+                <button 
+                  onClick={() => setError(null)}
+                  className="mt-2 px-4 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-full text-sm font-bold flex items-center gap-1"
+                >
+                    <RefreshCw className="w-3 h-3" /> 다시 시도
+                </button>
             )}
           </div>
         )}
@@ -281,52 +303,45 @@ const QuizSection: React.FC = () => {
                 >
                   <div className="flex items-center">
                     <span className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg mr-4 text-sm font-bold transition-colors ${
-                      isAnswered && idx === currentQ.correctAnswerIndex ? 'bg-emerald-200 text-emerald-800' :
-                      isAnswered && idx === selectedOption ? 'bg-rose-200 text-rose-800' :
-                      'bg-slate-100 text-slate-500 group-hover:bg-violet-200 group-hover:text-violet-700'
+                      isAnswered && idx === currentQ.correctAnswerIndex ? 'bg-emerald-100 text-emerald-600' :
+                      isAnswered && idx === selectedOption ? 'bg-rose-100 text-rose-600' :
+                      'bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600'
                     }`}>
-                      {String.fromCharCode(65 + idx)}
+                      {isAnswered && idx === currentQ.correctAnswerIndex ? <Check className="w-5 h-5" /> :
+                       isAnswered && idx === selectedOption ? <X className="w-5 h-5" /> :
+                       String.fromCharCode(65 + idx)}
                     </span>
                     <span className="text-lg">{option}</span>
                   </div>
-                  
-                  {isAnswered && idx === currentQ.correctAnswerIndex && (
-                    <Check className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-600 w-6 h-6" />
-                  )}
-                  {isAnswered && idx === selectedOption && idx !== currentQ.correctAnswerIndex && (
-                    <X className="absolute right-5 top-1/2 -translate-y-1/2 text-rose-500 w-6 h-6" />
-                  )}
                 </button>
               );
             })}
           </div>
+        </div>
 
-          {isAnswered && (
-            <div className="mt-8 animate-fade-in">
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 mb-6 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-violet-500"></div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                  <span className="font-bold text-slate-800 text-lg">해설</span>
-                </div>
-                <p className="text-slate-600 leading-relaxed text-lg">
+        {/* Bottom Area (Next Button or Explanation) */}
+        {isAnswered && (
+          <div className="bg-slate-50 p-6 md:p-8 border-t border-slate-100 animate-fade-in">
+             <div className="mb-6">
+                <h4 className="flex items-center gap-2 text-sm font-bold text-slate-500 mb-2 uppercase tracking-wide">
+                  <BrainCircuit className="w-4 h-4" /> Explanation
+                </h4>
+                <p className="text-slate-700 leading-relaxed font-medium">
                   {currentQ.explanation}
                 </p>
-              </div>
-              
-              <button
-                onClick={nextQuestion}
-                className="w-full py-4 bg-violet-600 text-white rounded-xl font-bold text-xl hover:bg-violet-700 transition-all shadow-lg shadow-violet-200 flex items-center justify-center gap-2 group"
-              >
-                {currentIdx < questions.length - 1 ? (
-                  <>다음 문제 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>
-                ) : (
-                  <>결과 보기 <Trophy className="w-5 h-5 group-hover:scale-110 transition-transform" /></>
-                )}
-              </button>
-            </div>
-          )}
-        </div>
+             </div>
+             <button 
+               onClick={nextQuestion}
+               className="w-full py-4 bg-violet-600 hover:bg-violet-700 text-white rounded-xl font-bold text-lg shadow-lg hover:shadow-violet-500/30 transition-all flex items-center justify-center gap-2"
+             >
+               {currentIdx < questions.length - 1 ? (
+                 <>다음 문제 <ArrowRight className="w-5 h-5" /></>
+               ) : (
+                 <>결과 보기 <Trophy className="w-5 h-5" /></>
+               )}
+             </button>
+          </div>
+        )}
       </div>
     </div>
   );
