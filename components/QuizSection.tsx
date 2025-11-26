@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { generateQuiz } from '../services/geminiService';
 import { QuizQuestion } from '../types';
-import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight } from 'lucide-react';
+import { Play, RotateCcw, Check, X, BrainCircuit, Trophy, Star, Zap, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
 
 const QuizSection: React.FC = () => {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [score, setScore] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [quizMode, setQuizMode] = useState<'intro' | 'active' | 'result'>('intro');
   const [difficulty, setDifficulty] = useState<'basic' | 'advanced'>('basic');
@@ -16,19 +17,26 @@ const QuizSection: React.FC = () => {
   const startQuiz = async (level: 'basic' | 'advanced') => {
     setDifficulty(level);
     setLoading(true);
+    setError(null);
     setQuestions([]);
-    const generated = await generateQuiz(level);
-    if (generated.length > 0) {
-      setQuestions(generated);
-      setCurrentIdx(0);
-      setScore(0);
-      setStreak(0);
-      setSelectedOption(null);
-      setQuizMode('active');
-    } else {
-      alert("문제를 불러오는데 실패했습니다. 잠시 후 다시 시도해주세요.");
+    
+    try {
+      const generated = await generateQuiz(level);
+      if (generated && generated.length > 0) {
+        setQuestions(generated);
+        setCurrentIdx(0);
+        setScore(0);
+        setStreak(0);
+        setSelectedOption(null);
+        setQuizMode('active');
+      } else {
+        setError("문제를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.");
+      }
+    } catch (e) {
+      setError("네트워크 오류가 발생했습니다. 인터넷 연결을 확인해주세요.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAnswer = (optionIdx: number) => {
@@ -68,7 +76,7 @@ const QuizSection: React.FC = () => {
     );
   }
 
-  // Intro Screen
+  // Intro Screen (and Error State)
   if (quizMode === 'intro') {
     return (
       <div className="max-w-3xl mx-auto text-center py-12 px-4 animate-fade-in">
@@ -83,10 +91,18 @@ const QuizSection: React.FC = () => {
           <span className="font-bold text-violet-600">기본 개념</span>부터 <span className="font-bold text-amber-600">심화 문제</span>까지 마스터해보세요!
         </p>
 
+        {error && (
+          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center gap-2 text-red-600 animate-pulse">
+            <AlertCircle className="w-5 h-5" />
+            <span className="font-bold">{error}</span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
           <button 
             onClick={() => startQuiz('basic')}
-            className="group relative overflow-hidden bg-white p-8 rounded-[2rem] shadow-xl border-2 border-transparent hover:border-violet-400 transition-all duration-300 hover:-translate-y-1 text-left"
+            disabled={loading}
+            className="group relative overflow-hidden bg-white p-8 rounded-[2rem] shadow-xl border-2 border-transparent hover:border-violet-400 transition-all duration-300 hover:-translate-y-1 text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-violet-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
             <div className="relative z-10">
@@ -101,7 +117,8 @@ const QuizSection: React.FC = () => {
           
           <button 
             onClick={() => startQuiz('advanced')}
-            className="group relative overflow-hidden bg-white p-8 rounded-[2rem] shadow-xl border-2 border-transparent hover:border-amber-400 transition-all duration-300 hover:-translate-y-1 text-left"
+            disabled={loading}
+            className="group relative overflow-hidden bg-white p-8 rounded-[2rem] shadow-xl border-2 border-transparent hover:border-amber-400 transition-all duration-300 hover:-translate-y-1 text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div className="absolute top-0 right-0 w-32 h-32 bg-amber-50 rounded-full -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
             <div className="relative z-10">
@@ -147,7 +164,10 @@ const QuizSection: React.FC = () => {
         </div>
 
         <button 
-          onClick={() => setQuizMode('intro')}
+          onClick={() => {
+              setQuizMode('intro');
+              setError(null);
+          }}
           className="w-full sm:w-auto px-10 py-4 bg-violet-600 text-white rounded-xl font-bold text-lg hover:bg-violet-700 transition-all shadow-lg hover:shadow-violet-500/30 flex items-center justify-center gap-2"
         >
           <RotateCcw className="w-5 h-5" />

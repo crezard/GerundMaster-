@@ -12,7 +12,7 @@ const quizSchema: Schema = {
     properties: {
       question: {
         type: Type.STRING,
-        description: "The quiz question text in Korean or English (mixed appropriately for Korean middle schoolers)."
+        description: "The quiz question text."
       },
       options: {
         type: Type.ARRAY,
@@ -25,10 +25,11 @@ const quizSchema: Schema = {
       },
       explanation: {
         type: Type.STRING,
-        description: "A helpful explanation in Korean explaining why the answer is correct."
+        description: "A helpful explanation in Korean."
       }
     },
-    required: ["question", "options", "correctAnswerIndex", "explanation"]
+    required: ["question", "options", "correctAnswerIndex", "explanation"],
+    propertyOrdering: ["question", "options", "correctAnswerIndex", "explanation"]
   }
 };
 
@@ -36,35 +37,57 @@ export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestio
   try {
     const model = "gemini-2.5-flash";
     const topicInstruction = topic === 'advanced' 
-      ? 'Focus on: Distinction between Gerunds and Participles, specific verbs (remember/forget/try/stop) with meaning changes, and prepositions + gerunds.' 
-      : 'Focus on: Basic usage as Subject/Object/Complement, and common verbs that take only gerunds (enjoy, finish, mind, keep, avoid).';
+      ? 'Focus on: Distinction between Gerunds and Participles, verbs with meaning changes (remember/forget/try/stop), and prepositions + gerunds.' 
+      : 'Focus on: Basic usage as Subject/Object/Complement, and verbs taking only gerunds (enjoy, finish, mind, keep, avoid).';
 
     const prompt = `
-      Create 5 high-quality multiple-choice questions about English Gerunds (동명사) for 3rd-year middle school students in South Korea (중3 영어).
+      Create 5 high-quality multiple-choice questions about English Gerunds (동명사) for 3rd-year middle school students in South Korea.
       
-      ${topicInstruction}
+      Topic: ${topicInstruction}
       
-      Guidelines:
-      1. Mixed Korean/English context is okay to ensure understanding, but keep example sentences in English.
-      2. Make sure the distinction is clear (no ambiguous grammar).
-      3. The explanation should be friendly, encouraging, and clear (in Korean).
-      4. Ensure options are plausible distractors.
+      Requirements:
+      1. Questions should be educational and appropriate for the level.
+      2. Ensure exactly 4 options per question.
+      3. Explanation must be in Korean and helpful for students.
+      4. Output strictly valid JSON matching the schema.
     `;
 
     const response = await ai.models.generateContent({
       model,
-      contents: prompt,
+      contents: {
+        parts: [{ text: prompt }]
+      },
       config: {
         responseMimeType: "application/json",
         responseSchema: quizSchema,
-        systemInstruction: "You are a top-tier English grammar teacher for Korean middle school students. You are precise, encouraging, and clear."
+        systemInstruction: "You are an expert English grammar teacher for Korean students. Always output strictly structured JSON."
       }
     });
 
     const rawData = response.text;
-    if (!rawData) return [];
+    if (!rawData) {
+      console.error("Empty response from AI");
+      return [];
+    }
     
-    const parsedData = JSON.parse(rawData);
+    // Safety parsing
+    let parsedData;
+    try {
+        parsedData = JSON.parse(rawData);
+    } catch (e) {
+        // If strict JSON fails, try to find JSON array in text
+        const match = rawData.match(/\[.*\]/s);
+        if (match) {
+            parsedData = JSON.parse(match[0]);
+        } else {
+            throw new Error("Failed to parse JSON response");
+        }
+    }
+
+    if (!Array.isArray(parsedData)) {
+        throw new Error("Response is not an array");
+    }
+
     return parsedData.map((q: any, index: number) => ({ ...q, id: Date.now() + index }));
   } catch (error) {
     console.error("Failed to generate quiz:", error);
