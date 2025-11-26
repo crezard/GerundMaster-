@@ -31,8 +31,11 @@ const quizSchema: Schema = {
 };
 
 const getClient = () => {
-  const apiKey = process.env.API_KEY;
+  // Check for the user's specific key first, then the standard key
+  const apiKey = process.env.VITE_VAIT_API_KEY || process.env.API_KEY;
+  
   if (!apiKey) {
+    console.error("Gemini API Key is missing. Checked 'VITE_VAIT_API_KEY' and 'API_KEY'.");
     throw new Error("API_KEY_MISSING");
   }
   return new GoogleGenAI({ apiKey });

@@ -52,6 +52,9 @@ const QuizSection: React.FC = () => {
       } catch (e) {
         console.error(e);
       }
+    } else {
+        // Fallback for local environments
+        alert("로컬 환경에서는 .env 파일에 VITE_VAIT_API_KEY 또는 API_KEY를 설정하고 서버를 재시작해주세요.");
     }
   };
 
@@ -112,17 +115,22 @@ const QuizSection: React.FC = () => {
             <div className="flex items-center gap-2">
               <AlertCircle className="w-6 h-6" />
               <span className="font-bold text-lg">
-                {error === "API_KEY_MISSING" ? "API 키가 설정되지 않았습니다." : error}
+                {error === "API_KEY_MISSING" ? "API 키가 확인되지 않습니다." : error}
               </span>
             </div>
             {error === "API_KEY_MISSING" && (
-              <button 
-                onClick={handleOpenKeySettings}
-                className="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-full font-bold transition-colors flex items-center gap-2"
-              >
-                <Key className="w-4 h-4" />
-                API 키 설정하기
-              </button>
+              <div className="flex flex-col items-center gap-2">
+                <button 
+                    onClick={handleOpenKeySettings}
+                    className="px-6 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-full font-bold transition-colors flex items-center gap-2"
+                >
+                    <Key className="w-4 h-4" />
+                    API 키 설정 확인
+                </button>
+                <p className="text-xs text-red-400 mt-2">
+                  * 환경 변수(VITE_VAIT_API_KEY) 설정을 확인해주세요.
+                </p>
+              </div>
             )}
           </div>
         )}
