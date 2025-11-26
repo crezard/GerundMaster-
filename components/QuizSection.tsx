@@ -15,9 +15,15 @@ const QuizSection: React.FC = () => {
   const [streak, setStreak] = useState(0);
   const [envStatus, setEnvStatus] = useState<any>(null);
 
+  // Function to refresh env status
+  const updateEnvStatus = () => {
+    const status = checkEnvStatus();
+    setEnvStatus(status);
+    console.log("Current Env Status:", status);
+  };
+
   useEffect(() => {
-    // Check env status on mount for debugging
-    setEnvStatus(checkEnvStatus());
+    updateEnvStatus();
   }, []);
 
   const startQuiz = async (level: 'basic' | 'advanced') => {
@@ -39,8 +45,7 @@ const QuizSection: React.FC = () => {
         setError("문제를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.");
       }
     } catch (e: any) {
-      // Re-check env status on error
-      setEnvStatus(checkEnvStatus());
+      updateEnvStatus();
       if (e.message === "API_KEY_MISSING") {
         setError("API_KEY_MISSING");
       } else {
@@ -56,7 +61,7 @@ const QuizSection: React.FC = () => {
     if (win.aistudio) {
       try {
         await win.aistudio.openSelectKey();
-        setError(null); // Clear error to allow retry
+        setError(null); 
       } catch (e) {
         console.error(e);
       }
@@ -122,49 +127,48 @@ const QuizSection: React.FC = () => {
             <div className="flex items-center gap-2">
               <AlertCircle className="w-6 h-6" />
               <span className="font-bold text-lg">
-                {error === "API_KEY_MISSING" ? "API 키 설정 문제 (API_KEY_MISSING)" : error}
+                {error === "API_KEY_MISSING" ? "API 키를 찾을 수 없습니다" : error}
               </span>
             </div>
             {error === "API_KEY_MISSING" && (
               <div className="flex flex-col items-center gap-2 w-full max-w-md">
                 <div className="text-xs text-red-500 mt-2 bg-white/50 p-4 rounded-xl w-full text-left leading-relaxed border border-red-100 shadow-sm">
                    <strong className="text-red-700 block mb-2 text-sm border-b border-red-200 pb-1 flex items-center gap-1">
-                     <Globe className="w-3 h-3" /> Vercel 환경 문제 해결 (필독)
+                     <Globe className="w-3 h-3" /> 배포 환경(Vercel) 디버깅 가이드
                    </strong>
                    <ol className="list-decimal pl-4 space-y-2 mb-4">
                      <li>
-                        <strong>F12 키를 눌러 [Console] 탭을 확인하세요.</strong><br/>
-                        <span className="text-[10px] text-slate-500">"SUCCESS" 메시지가 없으면 키가 로드되지 않은 것입니다.</span>
+                        Vercel 환경 변수 이름이 <code className="bg-red-100 px-1 rounded font-bold text-[10px]">VITE_VAIT_API_KEY</code> 인지 확인하세요.
+                        <br/><span className="text-[10px] text-slate-500">(그냥 API_KEY라고 적으면 브라우저에서 안 보여요!)</span>
                      </li>
                      <li>
-                        Vercel 환경변수 설정에서 Key가 정확한지 확인:<br/>
-                        <code className="bg-red-100 px-1 rounded font-bold text-[10px]">VITE_VAIT_API_KEY</code>
-                     </li>
-                     <li>
-                        <span className="text-red-700 font-bold bg-red-50 px-1">설정 후 반드시 Redeploy 하셨나요?</span><br/>
-                        (환경변수는 빌드 시점에 주입되므로 재배포 필수)
+                        <span className="text-red-700 font-bold bg-red-50 px-1">Redeploy(재배포)</span>를 꼭 해야 적용됩니다.
                      </li>
                    </ol>
                    
                    <div className="mt-4 pt-2 border-t border-red-200 text-[11px] font-mono bg-slate-800 text-white p-3 rounded-lg">
-                     <div className="flex items-center gap-2 font-bold mb-2 text-yellow-400">
-                       <Terminal className="w-3 h-3" /> System Diagnostics
+                     <div className="flex items-center justify-between mb-2">
+                       <span className="font-bold text-yellow-400 flex items-center gap-2">
+                         <Terminal className="w-3 h-3" /> 감지된 키 목록
+                       </span>
+                       <button onClick={updateEnvStatus} className="text-[9px] bg-slate-600 px-1 rounded hover:bg-slate-500">새로고침</button>
                      </div>
-                     <div className="space-y-1">
-                       <div className="flex justify-between border-b border-slate-700 pb-1 mb-1">
-                         <span>import.meta.env:</span>
-                         <span className={envStatus?.hasImportMeta ? "text-green-400" : "text-red-400"}>
-                           {envStatus?.hasImportMeta ? "OK" : "MISSING"}
-                         </span>
+                     
+                     {envStatus?.keysFound && envStatus.keysFound.length > 0 ? (
+                       <div className="text-green-400 space-y-1">
+                         {envStatus.keysFound.map((k: string) => (
+                           <div key={k} className="flex items-center gap-1">
+                             <CheckCircle2 className="w-3 h-3" /> {k}
+                           </div>
+                         ))}
                        </div>
-                       <div className="font-bold text-slate-400 mb-1">Keys Detected:</div>
-                       {envStatus?.keysFound && envStatus.keysFound.length > 0 ? (
-                         <div className="text-green-400">
-                           {envStatus.keysFound.map((k: string) => <div key={k}>✓ {k}</div>)}
-                         </div>
-                       ) : (
-                         <div className="text-red-400 font-bold">NONE (No keys found)</div>
-                       )}
+                     ) : (
+                       <div className="text-red-400 font-bold flex items-center gap-1">
+                         <XCircle className="w-3 h-3" /> 감지된 키 없음 (0개)
+                       </div>
+                     )}
+                     <div className="mt-2 text-slate-500 border-t border-slate-700 pt-1">
+                       Supported: VITE_VAIT_API_KEY, VITE_API_KEY...
                      </div>
                    </div>
                 </div>

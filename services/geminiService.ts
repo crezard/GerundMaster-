@@ -30,43 +30,52 @@ const quizSchema: Schema = {
   }
 };
 
+// --- CRITICAL: Environment Variable Access for Vite/Vercel ---
+// We access these at the top level or simple scope to ensure Vite's static analysis picks them up.
+// Using try-catch around them can sometimes prevent static replacement.
+let VITE_VARS: any = {};
+try {
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
+    VITE_VARS = {
+      // @ts-ignore
+      VITE_VAIT_API_KEY: import.meta.env.VITE_VAIT_API_KEY,
+      // @ts-ignore
+      VITE_API_KEY: import.meta.env.VITE_API_KEY,
+      // @ts-ignore
+      VITE_GOOGLE_API_KEY: import.meta.env.VITE_GOOGLE_API_KEY,
+      // @ts-ignore
+      VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY,
+      // @ts-ignore
+      NEXT_PUBLIC_API_KEY: import.meta.env.NEXT_PUBLIC_API_KEY,
+    };
+  }
+} catch (e) {
+  console.warn("import.meta.env access failed", e);
+}
+
 // Helper to check environment status for debugging UI
 export const checkEnvStatus = () => {
   const status = {
-    hasImportMeta: false,
-    hasViteVaitKey: false,
-    hasViteKey: false,
-    hasProcessKey: false,
+    envType: 'Unknown',
     keysFound: [] as string[]
   };
 
-  try {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env) {
-      status.hasImportMeta = true;
-      // @ts-ignore
-      if (import.meta.env.VITE_VAIT_API_KEY) {
-        status.hasViteVaitKey = true;
-        status.keysFound.push("VITE_VAIT_API_KEY");
-      }
-      // @ts-ignore
-      if (import.meta.env.VITE_API_KEY) {
-        status.hasViteKey = true;
-        status.keysFound.push("VITE_API_KEY");
-      }
+  // Check Vite vars captured above
+  Object.keys(VITE_VARS).forEach(key => {
+    if (VITE_VARS[key]) {
+      status.keysFound.push(`import.meta.env.${key}`);
     }
-  } catch (e) {}
+  });
 
+  // Check process.env (Node/Sandbox)
   try {
     if (typeof process !== 'undefined' && process.env) {
-      if (process.env.API_KEY) {
-        status.hasProcessKey = true;
-        status.keysFound.push("process.env.API_KEY");
-      }
-      // Check for VITE_VAIT_API_KEY in process.env (sometimes injected by bundlers)
-      if (process.env.VITE_VAIT_API_KEY) {
-        status.keysFound.push("process.env.VITE_VAIT_API_KEY");
-      }
+      status.envType = 'Node/Process';
+      if (process.env.API_KEY) status.keysFound.push("process.env.API_KEY");
+      if (process.env.VITE_VAIT_API_KEY) status.keysFound.push("process.env.VITE_VAIT_API_KEY");
+    } else {
+      status.envType = 'Browser/Vite';
     }
   } catch (e) {}
 
@@ -75,72 +84,35 @@ export const checkEnvStatus = () => {
 
 const getClient = () => {
   let apiKey = '';
-  
-  console.log("--- API KEY DETECTION START ---");
 
-  // 1. Check import.meta.env.VITE_VAIT_API_KEY (Highest Priority)
-  try {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_VAIT_API_KEY) {
-      console.log("SUCCESS: Found VITE_VAIT_API_KEY in import.meta.env");
-      // @ts-ignore
-      apiKey = import.meta.env.VITE_VAIT_API_KEY;
-    }
-  } catch (e) {
-    console.log("Check 1 failed:", e);
-  }
+  console.log("--- API KEY LOOKUP ---");
 
-  // 2. Check import.meta.env.VITE_API_KEY
-  if (!apiKey) {
+  // 1. Try VITE variables (Preferred for Vercel/Vite)
+  // We check the object we constructed earlier to guarantee safe access
+  if (VITE_VARS.VITE_VAIT_API_KEY) apiKey = VITE_VARS.VITE_VAIT_API_KEY;
+  else if (VITE_VARS.VITE_API_KEY) apiKey = VITE_VARS.VITE_API_KEY;
+  else if (VITE_VARS.VITE_GOOGLE_API_KEY) apiKey = VITE_VARS.VITE_GOOGLE_API_KEY;
+  else if (VITE_VARS.VITE_GEMINI_API_KEY) apiKey = VITE_VARS.VITE_GEMINI_API_KEY;
+  else if (VITE_VARS.NEXT_PUBLIC_API_KEY) apiKey = VITE_VARS.NEXT_PUBLIC_API_KEY;
+
+  if (apiKey) {
+    console.log("SUCCESS: Found API Key in Vite variables.");
+  } else {
+    // 2. Try process.env (Fallback for Local/Sandbox)
     try {
-      // @ts-ignore
-      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_KEY) {
-        console.log("SUCCESS: Found VITE_API_KEY in import.meta.env");
-        // @ts-ignore
-        apiKey = import.meta.env.VITE_API_KEY;
-      }
-    } catch (e) {
-      console.log("Check 2 failed:", e);
-    }
-  }
-
-  // 3. Check process.env.API_KEY (Standard for Node/Sandbox)
-  if (!apiKey) {
-    try {
-      if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-        console.log("SUCCESS: Found API_KEY in process.env");
-        apiKey = process.env.API_KEY;
-      }
-    } catch (e) {
-       console.log("Check 3 failed:", e);
-    }
-  }
-
-  // 4. Check process.env.VITE_VAIT_API_KEY (Fallback)
-  if (!apiKey) {
-    try {
-      if (typeof process !== 'undefined' && process.env && process.env.VITE_VAIT_API_KEY) {
-        console.log("SUCCESS: Found VITE_VAIT_API_KEY in process.env");
-        apiKey = process.env.VITE_VAIT_API_KEY;
+      if (typeof process !== 'undefined' && process.env) {
+        if (process.env.API_KEY) apiKey = process.env.API_KEY;
+        else if (process.env.VITE_VAIT_API_KEY) apiKey = process.env.VITE_VAIT_API_KEY;
       }
     } catch (e) {}
+    
+    if (apiKey) console.log("SUCCESS: Found API Key in process.env");
   }
 
   if (!apiKey) {
-    console.error("CRITICAL ERROR: No API Key found. Checked: import.meta.env.VITE_VAIT_API_KEY, VITE_API_KEY, process.env.API_KEY");
-    
-    // Attempt to log available keys for debugging (safely)
-    try {
-      // @ts-ignore
-      if (typeof import.meta !== 'undefined' && import.meta.env) {
-         // @ts-ignore
-         console.log("Available VITE keys:", Object.keys(import.meta.env).filter(k => k.startsWith('VITE_')));
-      }
-    } catch(e) {}
-    
+    console.error("CRITICAL: No API Key found in any known location.");
+    console.log("Checked VITE_VARS:", Object.keys(VITE_VARS));
     throw new Error("API_KEY_MISSING");
-  } else {
-    console.log("API Key loaded successfully (First 4 chars):", apiKey.substring(0, 4) + "****");
   }
 
   return new GoogleGenAI({ apiKey: apiKey.trim() });
@@ -189,7 +161,6 @@ export const generateQuiz = async (topic: string = "basic"): Promise<QuizQuestio
     try {
         parsedData = JSON.parse(rawData);
     } catch (e) {
-        // If strict JSON fails, try to find JSON array in text
         const match = rawData.match(/\[.*\]/s);
         if (match) {
             parsedData = JSON.parse(match[0]);
